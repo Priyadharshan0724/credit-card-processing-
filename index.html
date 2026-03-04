@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexPay — Next-Gen Credit Card Processing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & VARS ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #070810;
+  --bg2: #0d0f1c;
+  --bg3: #111420;
+  --panel: #13162A;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --gold: #C9A84C;
+  --gold2: #F0D080;
+  --gold3: rgba(201,168,76,0.15);
+  --cyan: #00D4FF;
+  --cyan2: rgba(0,212,255,0.12);
+  --red: #FF4B6E;
+  --green: #00E5A0;
+  --yellow: #FFB800;
+  --text: #E8EAF5;
+  --muted: #7B7FA8;
+  --glow: 0 0 40px rgba(201,168,76,0.25);
+  --glow2: 0 0 20px rgba(0,212,255,0.2);
+  font-size: 16px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── CUSTOM CURSOR ─────────────────────────────────────────────── */
+#cursor {
+  width: 12px; height: 12px;
+  background: var(--gold);
+  border-radius: 50%;
+  position: fixed; top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0.1s ease;
+  mix-blend-mode: difference;
+}
+#cursor-ring {
+  width: 36px; height: 36px;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  position: fixed; top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9998;
+  transition: all 0.15s ease;
+  opacity: 0.5;
+}
+
+/* ── NOISE OVERLAY ─────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+  opacity: 0.4;
+}
+
+/* ── GRID BG ───────────────────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── NAV ───────────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 60px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(7,8,16,0.85);
+  backdrop-filter: blur(20px);
+}
+.nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.nav-logo span { color: var(--cyan); -webkit-text-fill-color: var(--cyan); }
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  color: var(--muted); text-decoration: none;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--gold); }
+.nav-pill {
+  background: var(--gold3);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 8px 20px;
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.nav-pill:hover { background: var(--gold); color: var(--bg); }
+
+/* ── HERO ──────────────────────────────────────────────────────── */
+#hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 40px 80px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-glow {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border2);
+  padding: 6px 16px;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 32px;
+  animation: fadeUp 0.8s ease both;
+}
+.hero-tag::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.hero-h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(48px, 8vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -3px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.8s 0.1s ease both;
+}
+.hero-h1 .gold { background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-h1 .serif { font-family: 'Instrument Serif', serif; font-style: italic; }
+.hero-sub {
+  max-width: 540px;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 14px;
+  margin: 0 auto 48px;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+.hero-btns {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--bg); padding: 14px 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  border: none; cursor: pointer;
+  transition: all 0.2s; font-weight: 500;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.4); }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text); padding: 14px 32px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+/* TICKER */
+.ticker-wrap {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-top: 1px solid var(--border);
+  background: rgba(13,15,28,0.8);
+  overflow: hidden; padding: 12px 0;
+}
+.ticker-inner { display: flex; gap: 48px; white-space: nowrap; animation: ticker 30s linear infinite; }
+.ticker-item {
+  display: flex; gap: 8px; align-items: center;
+  font-size: 11px; color: var(--muted); letter-spacing: 1px;
+}
+.ticker-item .val { color: var(--gold); }
+.ticker-item .up { color: var(--green); }
+.ticker-item .down { color: var(--red); }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+/* ── STATS BAR ─────────────────────────────────────────────────── */
+.stats-bar {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border);
+  border-left: none; border-right: none;
+  position: relative; z-index: 1;
+  background: var(--bg2);
+}
+.stat-item {
+  padding: 40px 48px;
+  border-left: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  transition: background 0.3s;
+}
+.stat-item:hover { background: var(--bg3); }
+.stat-item::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s ease;
+}
+.stat-item:hover::after { transform: scaleX(1); }
+.stat-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 700; line-height: 1; }
+.stat-value.gold { background: linear-gradient(135deg, var(--gold), var(--gold2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-value.cyan { color: var(--cyan); }
+.stat-sub { font-size: 10px; color: var(--green); margin-top: 8px; letter-spacing: 1px; }
+
+/* ── SECTION ───────────────────────────────────────────────────── */
+section { position: relative; z-index: 1; }
+.section-inner { max-width: 1200px; margin: 0 auto; padding: 100px 60px; }
+.section-tag {
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 16px;
+}
+.section-h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700; line-height: 1.1; letter-spacing: -1px;
+  margin-bottom: 16px;
+}
+.section-sub { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 520px; }
+
+/* ── CARD PROCESSOR DEMO ───────────────────────────────────────── */
+#processor { background: var(--bg2); }
+.processor-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 40px; margin-top: 60px;
+}
+.card-visual-wrap { position: relative; }
+.card-3d {
+  width: 380px; height: 240px;
+  background: linear-gradient(135deg, #1a1030 0%, #2d1060 50%, #0d0820 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(201,168,76,0.3);
+  padding: 28px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+}
+.card-3d:hover { transform: rotateY(-5deg) rotateX(3deg); box-shadow: 0 60px 120px rgba(0,0,0,0.7), 0 0 30px rgba(201,168,76,0.2); }
+.card-3d::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(201,168,76,0.15) 0%, transparent 60%);
+  border-radius: inherit;
+}
+.card-chip {
+  width: 48px; height: 36px;
+  background: linear-gradient(135deg, #C9A84C, #8B6914);
+  border-radius: 6px; margin-bottom: 32px;
+  position: relative; overflow: hidden;
+}
+.card-chip::before {
+  content: '';
+  position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+  background: rgba(0,0,0,0.3);
+}
+.card-chip::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+  background: rgba(0,0,0,0.3);
+}
+.card-number-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px; letter-spacing: 4px;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 20px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: all 0.3s;
+}
+.card-footer { display: flex; justify-content: space-between; align-items: flex-end; }
+.card-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+.card-val { font-size: 14px; color: rgba(255,255,255,0.85); letter-spacing: 1px; }
+.card-network-badge {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px; font-weight: 800;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.card-shine {
+  position: absolute; top: -100%; left: -100%; width: 60%; height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  transform: rotate(30deg);
+  animation: shine 4s ease-in-out infinite;
+}
+@keyframes shine { 0%,80% { left: -100%; } 100% { left: 200%; } }
+
+/* FORM */
+.form-group { margin-bottom: 20px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-label {
+  display: block;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.form-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,0.15); }
+.form-input.error { border-color: var(--red); }
+.form-input.valid { border-color: var(--green); }
+.form-error { font-size: 10px; color: var(--red); margin-top: 4px; letter-spacing: 1px; display: none; }
+.form-error.show { display: block; }
+.network-indicator {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--gold);
+}
+.input-wrap { position: relative; }
+
+/* RESULT PANEL */
+.result-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 24px;
+  display: none;
+  margin-top: 24px;
+}
+.result-panel.show { display: block; animation: fadeUp 0.4s ease; }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.result-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  font-weight: 600;
+}
+.result-status.approved { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.3); }
+.result-status.declined { background: rgba(255,75,110,0.1); color: var(--red); border: 1px solid rgba(255,75,110,0.3); }
+.result-status.flagged { background: rgba(255,184,0,0.1); color: var(--yellow); border: 1px solid rgba(255,184,0,0.3); }
+.result-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.result-item { }
+.result-key { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.result-val { font-size: 13px; color: var(--text); }
+.fraud-bar { margin-top: 16px; }
+.fraud-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+.fraud-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.fraud-fill { height: 100%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 0; }
+
+/* ── LIVE FEED ─────────────────────────────────────────────────── */
+#live-feed { background: var(--bg); }
+.feed-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px;
+}
+.live-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,75,110,0.1); border: 1px solid rgba(255,75,110,0.3);
+  padding: 6px 14px; color: var(--red);
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+}
+.live-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red); animation: pulse 1s infinite;
+}
+.txn-list { display: flex; flex-direction: column; gap: 8px; }
+.txn-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 120px 90px 80px 100px;
+  align-items: center; gap: 16px;
+  padding: 16px 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  transition: all 0.2s; cursor: pointer;
+  animation: slideIn 0.4s ease;
+}
+.txn-row:hover { border-color: var(--gold); background: var(--bg3); }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+.txn-id { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.txn-merchant { font-size: 13px; font-weight: 500; color: var(--text); }
+.txn-amount { font-size: 16px; font-family: 'Syne', sans-serif; font-weight: 600; text-align: right; }
+.txn-network { font-size: 11px; color: var(--muted); text-align: center; }
+.txn-status-badge {
+  padding: 4px 10px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  text-align: center; font-weight: 600;
+}
+.txn-status-badge.approved { background: rgba(0,229,160,0.1); color: var(--green); }
+.txn-status-badge.declined { background: rgba(255,75,110,0.1); color: var(--red); }
+.txn-status-badge.flagged { background: rgba(255,184,0,0.1); color: var(--yellow); }
+.txn-country { font-size: 11px; color: var(--muted); text-align: right; }
+.feed-controls { display: flex; gap: 12px; align-items: center; }
+.filter-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); padding: 6px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+}
+.filter-btn.active, .filter-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--gold3); }
+
+/* ── FEE CALCULATOR ────────────────────────────────────────────── */
+#fee-calc { background: var(--bg2); }
+.fee-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 60px; align-items: start; }
+.fee-input-group { margin-bottom: 32px; }
+.fee-slider {
+  width: 100%; height: 2px;
+  -webkit-appearance: none;
+  background: var(--border);
+  outline: none; margin-top: 12px;
+  cursor: pointer;
+}
+.fee-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(201,168,76,0.5);
+}
+.fee-amount-display {
+  font-family: 'Syne', sans-serif;
+  font-size: 48px; font-weight: 700;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+.fee-breakdown { display: flex; flex-direction: column; gap: 0; }
+.fee-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fee-line:last-child { border-bottom: none; }
+.fee-line-label { font-size: 12px; color: var(--muted); }
+.fee-line-val { font-size: 14px; font-weight: 500; }
+.fee-line-val.deduction { color: var(--red); }
+.fee-line-val.net { color: var(--green); font-size: 18px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.fee-progress { height: 6px; background: var(--border); margin-top: 8px; border-radius: 3px; overflow: hidden; }
+.fee-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+/* ── ANALYTICS ─────────────────────────────────────────────────── */
+#analytics { background: var(--bg); }
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 60px; }
+.analytics-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 32px;
+  transition: all 0.3s;
+  position: relative; overflow: hidden;
+}
+.analytics-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform: scaleX(0); transition: transform 0.4s;
+}
+.analytics-card:hover { border-color: rgba(201,168,76,0.3); }
+.analytics-card:hover::before { transform: scaleX(1); }
+.analytics-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.analytics-val { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.analytics-change { font-size: 11px; }
+.analytics-change.up { color: var(--green); }
+.analytics-change.down { color: var(--red); }
+
+/* DONUT CHART */
+.donut-wrap { display: flex; align-items: center; gap: 32px; margin-top: 32px; }
+.donut-svg { flex-shrink: 0; }
+.donut-legend { display: flex; flex-direction: column; gap: 12px; }
+.legend-item { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* BAR CHART */
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 24px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bar { width: 100%; border-radius: 2px 2px 0 0; transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); background: linear-gradient(180deg, var(--gold), rgba(201,168,76,0.3)); min-height: 4px; }
+.bar-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+
+/* ── LUHN TESTER ───────────────────────────────────────────────── */
+#luhn { background: var(--bg2); }
+.luhn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 60px; }
+.luhn-result {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 32px; text-align: center; min-height: 200px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; transition: all 0.4s;
+}
+.luhn-icon { font-size: 48px; }
+.luhn-status-text { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; }
+.luhn-details { font-size: 12px; color: var(--muted); line-height: 1.8; }
+.luhn-examples { margin-top: 32px; }
+.example-cards { display: flex; flex-direction: column; gap: 8px; }
+.example-card {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; transition: all 0.2s;
+  font-size: 12px;
+}
+.example-card:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── FEATURES ──────────────────────────────────────────────────── */
+#features { background: var(--bg); }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); margin-top: 60px; }
+.feature-tile {
+  background: var(--bg);
+  padding: 48px 40px;
+  transition: background 0.3s;
+  position: relative; overflow: hidden;
+}
+.feature-tile:hover { background: var(--bg3); }
+.feature-icon {
+  width: 48px; height: 48px;
+  background: var(--gold3); border: 1px solid rgba(201,168,76,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 24px;
+}
+.feature-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+.feature-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
+.feature-link { font-size: 10px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-top: 20px; display: inline-block; }
+
+/* ── FOOTER ────────────────────────────────────────────────────── */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 60px;
+  position: relative; z-index: 1;
+}
+.footer-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-copy { font-size: 11px; color: var(--muted); }
+.footer-links { display: flex; gap: 32px; }
+.footer-links a { font-size: 10px; color: var(--muted); text-decoration: none; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }
+.footer-links a:hover { color: var(--gold); }
+
+/* ── TOAST ─────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 32px; right: 32px;
+  background: var(--panel); border: 1px solid var(--border2);
+  padding: 16px 24px; z-index: 1000;
+  font-size: 12px; max-width: 300px;
+  animation: toastIn 0.3s ease;
+  display: flex; align-items: center; gap: 12px;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.toast.green { border-left: 3px solid var(--green); }
+.toast.red { border-left: 3px solid var(--red); }
+.toast.yellow { border-left: 3px solid var(--yellow); }
+
+/* ── ANIMATIONS ────────────────────────────────────────────────── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── LOADING SPINNER ───────────────────────────────────────────── */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(201,168,76,0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SCROLLBAR ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ── RESPONSIVE ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  nav { padding: 16px 24px; }
+  .nav-links { display: none; }
+  .section-inner { padding: 60px 24px; }
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+  .processor-grid, .fee-grid, .luhn-grid { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .txn-row { grid-template-columns: 1fr 1fr; }
+  .card-3d { width: 100%; }
+  #cursor, #cursor-ring { display: none; }
+  body { cursor: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Nex<span>Pay</span></div>
+  <ul class="nav-links">
+    <li><a href="#processor">Process</a></li>
+    <li><a href="#live-feed">Live Feed</a></li>
+    <li><a href="#fee-calc">Fees</a></li>
+    <li><a href="#analytics">Analytics</a></li>
+    <li><a href="#luhn">Luhn Test</a></li>
+    <li><a href="#features">Features</a></li>
+  </ul>
+  <button class="nav-pill" onclick="scrollToSection('processor')">Try Demo →</button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-tag">Next-Gen Payment Infrastructure</div>
+  <h1 class="hero-h1">
+    Credit Card<br>
+    <span class="gold serif">Processing</span><br>
+    Reimagined
+  </h1>
+  <p class="hero-sub">
+    Real-time authorization. AI fraud detection. Transparent fees.
+    Built for the modern financial stack — sub-200ms response times, 99.99% uptime.
+  </p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="scrollToSection('processor')">Process a Payment</button>
+    <button class="btn-outline" onclick="scrollToSection('analytics')">View Analytics</button>
+  </div>
+
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="ticker">
+      <span class="ticker-item">✦ VISA <span class="val">$1,249.00</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ MASTERCARD <span class="val">$89.99</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ AMEX <span class="val">$5,400.00</span> <span class="down">▼ FLAGGED</span></span>
+      <span class="ticker-item">✦ VISA <span class="val">$234.50</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ DISCOVER <span class="val">$67.00</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ MASTERCARD <span class="val">$12,000.00</span> <span class="down">▼ DECLINED</span></span>
+      <span class="ticker-item">✦ VISA <span class="val">$499.99</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ AMEX <span class="val">$189.00</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ VISA <span class="val">$1,249.00</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ MASTERCARD <span class="val">$89.99</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ AMEX <span class="val">$5,400.00</span> <span class="down">▼ FLAGGED</span></span>
+      <span class="ticker-item">✦ VISA <span class="val">$234.50</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ DISCOVER <span class="val">$67.00</span> <span class="up">▲ APPROVED</span></span>
+      <span class="ticker-item">✦ MASTERCARD <span class="val">$12,000.00</span> <span class="down">▼ DECLINED</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-item reveal">
+    <div class="stat-label">Total Processed</div>
+    <div class="stat-value gold" id="stat-total">4,821,993</div>
+    <div class="stat-sub">↑ 2.3% this week</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.1s">
+    <div class="stat-label">Total Volume</div>
+    <div class="stat-value gold" id="stat-volume">$9.2B</div>
+    <div class="stat-sub">↑ 5.1% this month</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.2s">
+    <div class="stat-label">Success Rate</div>
+    <div class="stat-value cyan" id="stat-success">99.7%</div>
+    <div class="stat-sub">↑ 0.2% vs last week</div>
+  </div>
+  <div class="stat-item reveal" style="transition-delay:0.3s">
+    <div class="stat-label">Avg Response</div>
+    <div class="stat-value" style="color:var(--green)" id="stat-response">142ms</div>
+    <div class="stat-sub">↓ 8ms improvement</div>
+  </div>
+</div>
+
+<!-- CARD PROCESSOR -->
+<section id="processor">
+  <div class="section-inner">
+    <div class="section-tag">/ Live Demo</div>
+    <h2 class="section-h2 reveal">Process a<br><em>Real Transaction</em></h2>
+    <p class="section-sub reveal">Enter card details to simulate a full authorization flow with live fraud scoring, Luhn validation, and fee calculation.</p>
+
+    <div class="processor-grid">
+      <!-- Card Visual + Form -->
+      <div>
+        <div class="card-visual-wrap" style="margin-bottom:32px">
+          <div class="card-3d" id="card-display">
+            <div class="card-shine"></div>
+            <div class="card-chip"></div>
+            <div class="card-number-display" id="card-num-display">•••• •••• •••• ••••</div>
+            <div class="card-footer">
+              <div>
+                <div class="card-label">Card Holder</div>
+                <div class="card-val" id="card-name-display">YOUR NAME</div>
+              </div>
+              <div>
+                <div class="card-label">Expires</div>
+                <div class="card-val" id="card-exp-display">MM/YY</div>
+              </div>
+              <div class="card-network-badge" id="card-network-badge">VISA</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="payment-form" onsubmit="return false;">
+          <div class="form-group">
+            <label class="form-label">Cardholder Name</label>
+            <input type="text" class="form-input" id="f-name" placeholder="John Doe" autocomplete="off">
+            <div class="form-error" id="err-name"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Card Number</label>
+            <div class="input-wrap">
+              <input type="text" class="form-input" id="f-card" placeholder="4111 1111 1111 1111" maxlength="19" autocomplete="off">
+              <span class="network-indicator" id="network-ind">—</span>
+            </div>
+            <div class="form-error" id="err-card"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Expiry</label>
+              <input type="text" class="form-input" id="f-expiry" placeholder="MM/YY" maxlength="5">
+              <div class="form-error" id="err-expiry"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">CVV</label>
+              <input type="text" class="form-input" id="f-cvv" placeholder="123" maxlength="4">
+              <div class="form-error" id="err-cvv"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (USD)</label>
+              <input type="number" class="form-input" id="f-amount" placeholder="99.99" min="0.01" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Merchant</label>
+              <input type="text" class="form-input" id="f-merchant" placeholder="My Store" value="Demo Store">
+            </div>
+          </div>
+          <button class="btn-primary" style="width:100%; margin-top:8px; padding:18px;" id="pay-btn" onclick="processPayment()">
+            <span id="pay-btn-text">⚡ Process Payment</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Result Panel -->
+      <div>
+        <div class="result-panel" id="result-panel">
+          <div class="result-header">
+            <div class="result-status" id="res-status">Approved</div>
+            <div style="font-size:11px;color:var(--muted)" id="res-txnid">TXN-...</div>
+          </div>
+          <div class="result-grid" id="res-grid"></div>
+          <div class="fraud-bar">
+            <div class="fraud-label">
+              <span>Fraud Risk Score</span>
+              <span id="fraud-score-label">0 / 100</span>
+            </div>
+            <div class="fraud-track">
+              <div class="fraud-fill" id="fraud-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fee Preview (always visible) -->
+        <div style="background:var(--panel);border:1px solid var(--border);padding:32px;margin-top:16px;">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:20px;">Fee Preview</div>
+          <div id="fee-preview-content" style="color:var(--muted);font-size:12px;">Enter an amount to see fee breakdown</div>
+        </div>
+
+        <!-- Test Cards -->
+        <div style="margin-top:16px;background:var(--panel);border:1px solid var(--border);padding:24px;">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">Quick Test Cards</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="example-card" onclick="fillTestCard('4111111111111111','12/26','123','100')">
+              <span>Visa — 4111 1111 1111 1111</span><span style="color:var(--green);font-size:10px;">APPROVED</span>
+            </div>
+            <div class="example-card" onclick="fillTestCard('5500005555555559','03/27','321','2500')">
+              <span>MC — 5500 0055 5555 5559</span><span style="color:var(--green);font-size:10px;">APPROVED</span>
+            </div>
+            <div class="example-card" onclick="fillTestCard('378282246310005','11/25','4567','8000')">
+              <span>Amex — 3782 8224 6310 005</span><span style="color:var(--yellow);font-size:10px;">FLAGGED</span>
+            </div>
+            <div class="example-card" onclick="fillTestCard('1234567890123456','01/25','999','50')">
+              <span>Invalid — 1234 5678 9012 3456</span><span style="color:var(--red);font-size:10px;">DECLINED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE FEED -->
+<section id="live-feed">
+  <div class="section-inner">
+    <div class="feed-header">
+      <div>
+        <div class="section-tag">/ Transaction Stream</div>
+        <h2 class="section-h2 reveal">Live Transaction<br><em>Feed</em></h2>
+      </div>
+      <div class="feed-controls">
+        <div class="live-badge">Live</div>
+        <button class="filter-btn active" onclick="setFilter('', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('approved', this)">Approved</button>
+        <button class="filter-btn" onclick="setFilter('declined', this)">Declined</button>
+        <button class="filter-btn" onclick="setFilter('flagged', this)">Flagged</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:140px 1fr 120px 90px 80px 100px;gap:16px;padding:8px 24px;margin-bottom:8px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">TXN ID</div>
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Merchant</div>
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:right">Amount</div>
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:center">Network</div>
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:center">Status</div>
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:right">Country</div>
+    </div>
+    <div class="txn-list" id="txn-list">
+      <div style="padding:40px;text-align:center;color:var(--muted);font-size:12px;">Loading transactions... <span class="spinner"></span></div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:12px;margin-top:24px;">
+      <button class="btn-outline" onclick="loadMoreTransactions()" id="load-more-btn">Load More</button>
+    </div>
+  </div>
+</section>
+
+<!-- FEE CALCULATOR -->
+<section id="fee-calc">
+  <div class="section-inner">
+    <div class="section-tag">/ Fee Breakdown</div>
+    <h2 class="section-h2 reveal">Transparent<br><em>Fee Calculator</em></h2>
+    <p class="section-sub reveal">No hidden fees. Understand exactly what you pay per transaction with our interchange-plus model.</p>
+
+    <div class="fee-grid">
+      <div>
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Transaction Amount</div>
+        <div class="fee-amount-display" id="fee-display">$100.00</div>
+        <input type="range" class="fee-slider" id="fee-slider" min="1" max="10000" value="100" step="1" oninput="updateFeeCalc(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:8px;">
+          <span>$1</span><span>$10,000</span>
+        </div>
+
+        <div style="margin-top:32px;">
+          <label class="form-label">Or enter amount manually</label>
+          <input type="number" class="form-input" id="fee-manual" placeholder="Enter amount" oninput="updateFeeCalcManual(this.value)">
+        </div>
+      </div>
+
+      <div class="fee-breakdown" id="fee-breakdown">
+        <div class="fee-line">
+          <span class="fee-line-label">Transaction Amount</span>
+          <span class="fee-line-val" id="fee-gross">$100.00</span>
+        </div>
+        <div class="fee-line">
+          <div>
+            <div class="fee-line-label">Interchange Fee (1.8%)</div>
+            <div class="fee-progress"><div class="fee-bar" id="bar-interchange" style="width:60%;background:var(--red)"></div></div>
+          </div>
+          <span class="fee-line-val deduction" id="fee-interchange">-$1.80</span>
+        </div>
+        <div class="fee-line">
+          <div>
+            <div class="fee-line-label">Assessment Fee (0.15%)</div>
+            <div class="fee-progress"><div class="fee-bar" id="bar-assessment" style="width:15%;background:var(--yellow)"></div></div>
+          </div>
+          <span class="fee-line-val deduction" id="fee-assessment">-$0.15</span>
+        </div>
+        <div class="fee-line">
+          <div>
+            <div class="fee-line-label">Processor Fee (0.3% + $0.10)</div>
+            <div class="fee-progress"><div class="fee-bar" id="bar-processor" style="width:20%;background:var(--gold)"></div></div>
+          </div>
+          <span class="fee-line-val deduction" id="fee-processor">-$0.40</span>
+        </div>
+        <div class="fee-line">
+          <span class="fee-line-label" style="font-weight:600;color:var(--text)">Net Amount Received</span>
+          <span class="fee-line-val net" id="fee-net">$97.65</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYTICS -->
+<section id="analytics">
+  <div class="section-inner">
+    <div class="section-tag">/ Dashboard</div>
+    <h2 class="section-h2 reveal">Real-Time<br><em>Analytics</em></h2>
+
+    <div class="analytics-grid" id="analytics-grid">
+      <div class="analytics-card reveal">
+        <div class="analytics-label">Success Rate</div>
+        <div class="analytics-val" id="a-success" style="color:var(--green)">—</div>
+        <div class="analytics-change up">↑ Calculated from session</div>
+        <canvas id="donut-canvas" width="160" height="160" style="margin-top:20px;display:block;margin-left:auto;margin-right:auto;"></canvas>
+      </div>
+      <div class="analytics-card reveal" style="transition-delay:0.1s">
+        <div class="analytics-label">Network Distribution</div>
+        <div id="network-breakdown" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+      </div>
+      <div class="analytics-card reveal" style="transition-delay:0.2s">
+        <div class="analytics-label">Risk Distribution</div>
+        <div id="risk-bars" style="margin-top:20px;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;background:var(--panel);border:1px solid var(--border);padding:40px;" class="reveal">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:32px;">Volume by Hour (Simulated)</div>
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+  </div>
+</section>
+
+<!-- LUHN TESTER -->
+<section id="luhn">
+  <div class="section-inner">
+    <div class="section-tag">/ Card Validation</div>
+    <h2 class="section-h2 reveal">Luhn Algorithm<br><em>Tester</em></h2>
+    <p class="section-sub reveal">Test any card number against the Luhn checksum algorithm used globally to validate credit card numbers.</p>
+
+    <div class="luhn-grid">
+      <div>
+        <div class="form-group">
+          <label class="form-label">Enter Card Number</label>
+          <input type="text" class="form-input" id="luhn-input" placeholder="4111 1111 1111 1111" oninput="testLuhn()" maxlength="23">
+        </div>
+        <div class="luhn-result" id="luhn-result">
+          <div class="luhn-icon">💳</div>
+          <div class="luhn-status-text" style="color:var(--muted)">Enter a card number</div>
+          <div class="luhn-details">The Luhn algorithm is used as a simple checksum to detect accidental errors in card numbers</div>
+        </div>
+        <div class="luhn-examples" style="margin-top:24px;">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Test Examples</div>
+          <div class="example-cards">
+            <div class="example-card" onclick="setLuhn('4111111111111111')">4111 1111 1111 1111 <span style="color:var(--muted)">Visa (Valid)</span></div>
+            <div class="example-card" onclick="setLuhn('5500005555555559')">5500 0055 5555 5559 <span style="color:var(--muted)">Mastercard (Valid)</span></div>
+            <div class="example-card" onclick="setLuhn('378282246310005')">3782 8224 6310 005 <span style="color:var(--muted)">Amex (Valid)</span></div>
+            <div class="example-card" onclick="setLuhn('4111111111111112')">4111 1111 1111 1112 <span style="color:var(--muted)">(Invalid)</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="background:var(--panel);border:1px solid var(--border);padding:40px;">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:24px;">How Luhn Works</div>
+          <div id="luhn-steps" style="font-size:12px;color:var(--muted);line-height:2;">
+            Enter a card number to see step-by-step validation...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-tag">/ Platform Capabilities</div>
+    <h2 class="section-h2 reveal">Everything You Need<br>to <em>Scale Payments</em></h2>
+
+    <div class="features-grid">
+      <div class="feature-tile reveal">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Real-Time Authorization</div>
+        <div class="feature-desc">Sub-200ms authorization across 180+ countries with 99.99% uptime SLA. Direct card network connections eliminate middlemen.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+      <div class="feature-tile reveal" style="transition-delay:0.1s">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">AI Fraud Detection</div>
+        <div class="feature-desc">Machine learning models analyze 200+ signals in real-time. Adaptive 3DS challenges only triggered for high-risk transactions.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+      <div class="feature-tile reveal" style="transition-delay:0.2s">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-title">End-to-End Encryption</div>
+        <div class="feature-desc">P2PE and network tokenization ensure card data never touches your systems. PCI DSS Level 1 certified infrastructure.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+      <div class="feature-tile reveal" style="transition-delay:0.1s">
+        <div class="feature-icon">💸</div>
+        <div class="feature-title">Instant Settlement</div>
+        <div class="feature-desc">Receive funds in real-time via Visa Direct and Mastercard Send. No more T+1/T+3 delays disrupting your cash flow.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+      <div class="feature-tile reveal" style="transition-delay:0.2s">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-title">API-First Platform</div>
+        <div class="feature-desc">RESTful and GraphQL APIs. SDKs for 8 languages. Webhooks for real-time events. Integrate in minutes, not weeks.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+      <div class="feature-tile reveal" style="transition-delay:0.3s">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Unified Analytics</div>
+        <div class="feature-desc">Real-time dashboards for authorization rates, decline analysis, chargeback management, and revenue analytics.</div>
+        <div class="feature-link">Learn more →</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="nav-logo" style="margin-bottom:8px;">NexPay</div>
+      <div class="footer-copy">© 2026 NexPay Technologies. For demonstration purposes only.</div>
+    </div>
+    <div class="footer-links">
+      <a href="#">Docs</a>
+      <a href="#">API</a>
+      <a href="#">Security</a>
+      <a href="#">Pricing</a>
+      <a href="#">Status</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const API = 'http://localhost:5000/api';
+let currentFilter = '';
+let txnPage = 1;
+let liveInterval = null;
+
+// ── CURSOR ──────────────────────────────────────────────────────────────────
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animCursor() {
+  cur.style.transform = `translate(${mx - 6}px, ${my - 6}px)`;
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.transform = `translate(${rx - 18}px, ${ry - 18}px)`;
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+document.querySelectorAll('button, a, input, .example-card, .txn-row').forEach(el => {
+  el.addEventListener('mouseenter', () => { ring.style.transform += ' scale(1.5)'; ring.style.opacity = '0.8'; });
+  el.addEventListener('mouseleave', () => { ring.style.opacity = '0.5'; });
+});
+
+// ── SCROLL REVEAL ────────────────────────────────────────────────────────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── CARD LIVE UPDATE ─────────────────────────────────────────────────────────
+const cardNetworks = { '4': 'VISA', '5': 'MASTERCARD', '3': 'AMEX', '6': 'DISCOVER' };
+document.getElementById('f-card').addEventListener('input', function(e) {
+  let val = e.target.value.replace(/\D/g, '');
+  let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+  e.target.value = formatted;
+  const network = cardNetworks[val[0]] || '—';
+  document.getElementById('network-ind').textContent = network;
+  document.getElementById('card-network-badge').textContent = network;
+  document.getElementById('card-num-display').textContent = formatted.padEnd(19, '•').replace(/\S{4}/g, m => m) || '•••• •••• •••• ••••';
+  const disp = formatted || '•••• •••• •••• ••••';
+  document.getElementById('card-num-display').textContent = disp.length < 4 ? '•••• •••• •••• ••••' : disp;
+});
+document.getElementById('f-name').addEventListener('input', e => {
+  document.getElementById('card-name-display').textContent = e.target.value.toUpperCase() || 'YOUR NAME';
+});
+document.getElementById('f-expiry').addEventListener('input', function(e) {
+  let val = e.target.value.replace(/\D/g, '');
+  if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+  e.target.value = val;
+  document.getElementById('card-exp-display').textContent = e.target.value || 'MM/YY';
+});
+
+// ── FEE PREVIEW ON AMOUNT INPUT ──────────────────────────────────────────────
+document.getElementById('f-amount').addEventListener('input', function(e) {
+  const amt = parseFloat(e.target.value);
+  if (amt > 0) updateFeePreview(amt);
+});
+
+function updateFeePreview(amount) {
+  const interchange = (amount * 0.018).toFixed(2);
+  const assessment = (amount * 0.0015).toFixed(2);
+  const processor = (amount * 0.003 + 0.10).toFixed(2);
+  const total = (parseFloat(interchange) + parseFloat(assessment) + parseFloat(processor)).toFixed(2);
+  const net = (amount - parseFloat(total)).toFixed(2);
+  document.getElementById('fee-preview-content').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between"><span>Interchange (1.8%)</span><span style="color:var(--red)">-$${interchange}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Assessment (0.15%)</span><span style="color:var(--yellow)">-$${assessment}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Processor (0.3%+$0.10)</span><span style="color:var(--gold)">-$${processor}</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span style="color:var(--text)">You Receive</span><span style="color:var(--green);font-size:16px;font-family:'Syne',sans-serif;font-weight:700">$${net}</span></div>
+    </div>
+  `;
+}
+updateFeePreview(100);
+
+// ── PROCESS PAYMENT ──────────────────────────────────────────────────────────
+async function processPayment() {
+  const btn = document.getElementById('pay-btn');
+  const btnText = document.getElementById('pay-btn-text');
+  const card = document.getElementById('f-card').value;
+  const name = document.getElementById('f-name').value;
+  const expiry = document.getElementById('f-expiry').value;
+  const cvv = document.getElementById('f-cvv').value;
+  const amount = document.getElementById('f-amount').value;
+  const merchant = document.getElementById('f-merchant').value;
+
+  if (!card || !amount) { showToast('Please fill in card number and amount', 'red'); return; }
+
+  btnText.innerHTML = '<span class="spinner"></span> Processing...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_number: card, name, expiry, cvv, amount: parseFloat(amount), merchant })
+    });
+    const data = await res.json();
+    displayResult(data);
+    if (data.transaction) addLiveTxn(data.transaction);
+    showToast(
+      data.transaction?.status === 'approved' ? `✓ ${data.message}` :
+      data.transaction?.status === 'flagged' ? `⚠ ${data.message}` : `✗ ${data.message}`,
+      data.transaction?.status === 'approved' ? 'green' : data.transaction?.status === 'flagged' ? 'yellow' : 'red'
+    );
+  } catch(e) {
+    // Simulate offline mode
+    simulateProcess(card, name, amount, merchant);
+  }
+
+  btnText.textContent = '⚡ Process Payment';
+  btn.disabled = false;
+}
+
+function simulateProcess(card, name, amount, merchant) {
+  const cleaned = card.replace(/\s/g, '');
+  const luhnValid = luhnCheck(cleaned);
+  const score = Math.floor(Math.random() * 40) + (luhnValid ? 0 : 60);
+  const status = !luhnValid ? 'declined' : score >= 60 ? 'declined' : score >= 35 ? 'flagged' : 'approved';
+  const network = cardNetworks[cleaned[0]] || 'Unknown';
+  const fees = { interchange: +(amount * 0.018).toFixed(2), assessment: +(amount * 0.0015).toFixed(2), processor: +(amount * 0.003 + 0.10).toFixed(2), net: +(amount - amount * 0.0225 - 0.10).toFixed(2) };
+  const txn = {
+    id: 'TXN-' + Math.random().toString(36).slice(2, 14).toUpperCase(),
+    amount: parseFloat(amount), status, merchant,
+    card_last4: cleaned.slice(-4), card_network: network,
+    timestamp: new Date().toISOString(), fraud_score: score,
+    reason: status === 'approved' ? 'Transaction approved' : status === 'flagged' ? 'Manual review required' : 'Invalid card',
+    response_time_ms: Math.floor(Math.random() * 200) + 80,
+    fees: status === 'approved' ? fees : null
+  };
+  displayResult({ success: status === 'approved', transaction: txn, fees: status === 'approved' ? fees : null, fraud_score: score, message: txn.reason });
+  addLiveTxn(txn);
+  showToast(status === 'approved' ? `✓ ${txn.reason}` : `✗ ${txn.reason}`, status === 'approved' ? 'green' : status === 'flagged' ? 'yellow' : 'red');
+}
+
+function displayResult(data) {
+  const panel = document.getElementById('result-panel');
+  const txn = data.transaction;
+  if (!txn) return;
+  panel.className = 'result-panel show';
+
+  const statusEl = document.getElementById('res-status');
+  statusEl.textContent = txn.status.charAt(0).toUpperCase() + txn.status.slice(1);
+  statusEl.className = `result-status ${txn.status}`;
+  document.getElementById('res-txnid').textContent = txn.id;
+
+  const items = [
+    ['Card', `**** **** **** ${txn.card_last4}`],
+    ['Network', txn.card_network],
+    ['Amount', `$${parseFloat(txn.amount).toFixed(2)}`],
+    ['Response', `${txn.response_time_ms || 142}ms`],
+    txn.fees ? ['Net Received', `$${txn.fees.net}`] : ['Reason', txn.reason || '—'],
+    txn.fees ? ['Total Fees', `$${(txn.fees.interchange + txn.fees.assessment + txn.fees.processor).toFixed(2)}`] : ['Risk Level', txn.risk_level || '—'],
+  ];
+  document.getElementById('res-grid').innerHTML = items.map(([k, v]) => `
+    <div class="result-item">
+      <div class="result-key">${k}</div>
+      <div class="result-val">${v}</div>
+    </div>
+  `).join('');
+
+  const score = data.fraud_score || txn.fraud_score || 0;
+  document.getElementById('fraud-score-label').textContent = `${score} / 100`;
+  const fill = document.getElementById('fraud-fill');
+  fill.style.width = '0';
+  fill.style.background = score >= 60 ? 'var(--red)' : score >= 35 ? 'var(--yellow)' : 'var(--green)';
+  setTimeout(() => { fill.style.width = score + '%'; }, 100);
+}
+
+// ── LOAD TRANSACTIONS ────────────────────────────────────────────────────────
+async function loadTransactions(reset = false) {
+  if (reset) { txnPage = 1; document.getElementById('txn-list').innerHTML = ''; }
+  try {
+    const res = await fetch(`${API}/transactions?page=${txnPage}&per_page=8&status=${currentFilter}`);
+    const data = await res.json();
+    renderTransactions(data.transactions, reset);
+    txnPage++;
+    if (txnPage > data.pages) document.getElementById('load-more-btn').style.display = 'none';
+  } catch(e) {
+    renderTransactions(generateLocalTxns(8), reset);
+  }
+}
+
+function generateLocalTxns(n) {
+  const statuses = ['approved', 'approved', 'approved', 'declined', 'flagged'];
+  const merchants = ['NexShop','UrbanCart','StreamFlix','SkyTravel','FoodRocket'];
+  const nets = ['Visa','Mastercard','Amex','Discover'];
+  return Array.from({length: n}, (_, i) => ({
+    id: 'TXN-' + Math.random().toString(36).slice(2, 14).toUpperCase(),
+    amount: (Math.random() * 2000 + 10).toFixed(2),
+    status: statuses[Math.floor(Math.random() * statuses.length)],
+    merchant: merchants[Math.floor(Math.random() * merchants.length)],
+    card_last4: String(Math.floor(1000 + Math.random() * 9000)),
+    card_network: nets[Math.floor(Math.random() * nets.length)],
+    timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+    country: ['US','UK','CA','DE','AU'][Math.floor(Math.random()*5)],
+  }));
+}
+
+function renderTransactions(txns, reset = false) {
+  const list = document.getElementById('txn-list');
+  if (reset) list.innerHTML = '';
+  if (!txns.length) { list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px;">No transactions found</div>'; return; }
+  txns.forEach(t => {
+    if (currentFilter && t.status !== currentFilter) return;
+    list.insertAdjacentHTML('beforeend', txnHTML(t));
+  });
+}
+
+function txnHTML(t) {
+  const time = new Date(t.timestamp).toLocaleTimeString();
+  const colors = { approved: 'var(--green)', declined: 'var(--red)', flagged: 'var(--yellow)' };
+  return `
+    <div class="txn-row" onclick="showTxnDetail('${t.id}')">
+      <div class="txn-id">${t.id.slice(0,14)}</div>
+      <div class="txn-merchant">${t.merchant || '—'}<div style="font-size:10px;color:var(--muted)">${time}</div></div>
+      <div class="txn-amount" style="color:${colors[t.status] || 'var(--text)'}">$${parseFloat(t.amount).toFixed(2)}</div>
+      <div class="txn-network">${t.card_network || '—'}<br><span style="font-size:9px">*${t.card_last4}</span></div>
+      <div><span class="txn-status-badge ${t.status}">${t.status}</span></div>
+      <div class="txn-country">${t.country || 'US'}</div>
+    </div>
+  `;
+}
+
+function addLiveTxn(t) {
+  const list = document.getElementById('txn-list');
+  if (list.querySelector('[style*="Loading"]')) list.innerHTML = '';
+  list.insertAdjacentHTML('afterbegin', txnHTML(t));
+  const rows = list.querySelectorAll('.txn-row');
+  if (rows.length > 20) rows[rows.length - 1].remove();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadTransactions(true);
+}
+
+function loadMoreTransactions() { loadTransactions(); }
+
+function showTxnDetail(id) {
+  showToast(`Transaction ${id} — click to copy`, 'green');
+  navigator.clipboard?.writeText(id);
+}
+
+// ── LIVE FEED AUTO-REFRESH ───────────────────────────────────────────────────
+async function fetchLiveTxn() {
+  try {
+    const res = await fetch(`${API}/live-feed`);
+    const t = await res.json();
+    addLiveTxn(t);
+  } catch(e) {
+    addLiveTxn(generateLocalTxns(1)[0]);
+  }
+}
+liveInterval = setInterval(fetchLiveTxn, 4000);
+
+// ── FEE CALCULATOR ───────────────────────────────────────────────────────────
+function updateFeeCalc(val) {
+  val = parseFloat(val);
+  document.getElementById('fee-display').textContent = `$${val.toLocaleString('en-US', {minimumFractionDigits:2})}`;
+  document.getElementById('fee-manual').value = val;
+  calcAndRenderFees(val);
+}
+function updateFeeCalcManual(val) {
+  val = parseFloat(val);
+  if (isNaN(val) || val < 0) return;
+  document.getElementById('fee-slider').value = Math.min(val, 10000);
+  document.getElementById('fee-display').textContent = `$${val.toLocaleString('en-US', {minimumFractionDigits:2})}`;
+  calcAndRenderFees(val);
+}
+function calcAndRenderFees(amount) {
+  const i = +(amount * 0.018).toFixed(2);
+  const a = +(amount * 0.0015).toFixed(2);
+  const p = +(amount * 0.003 + 0.10).toFixed(2);
+  const total = +(i + a + p).toFixed(2);
+  const net = +(amount - total).toFixed(2);
+  document.getElementById('fee-gross').textContent = `$${amount.toFixed(2)}`;
+  document.getElementById('fee-interchange').textContent = `-$${i}`;
+  document.getElementById('fee-assessment').textContent = `-$${a}`;
+  document.getElementById('fee-processor').textContent = `-$${p}`;
+  document.getElementById('fee-net').textContent = `$${net}`;
+  const pct = total / amount * 100;
+  document.getElementById('bar-interchange').style.width = Math.min((i / total * 100), 100) + '%';
+  document.getElementById('bar-assessment').style.width = Math.min((a / total * 100), 100) + '%';
+  document.getElementById('bar-processor').style.width = Math.min((p / total * 100), 100) + '%';
+}
+calcAndRenderFees(100);
+
+// ── ANALYTICS ────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const res = await fetch(`${API}/analytics`);
+    const data = await res.json();
+    renderAnalytics(data);
+  } catch(e) {
+    renderAnalytics({ success_rate: 94.2, status_breakdown: {approved:14, declined:3, flagged:2}, network_breakdown: {Visa:9, Mastercard:5, Amex:2, Discover:3}, risk_distribution:{low:12, medium:4, high:3} });
+  }
+}
+
+function renderAnalytics(data) {
+  document.getElementById('a-success').textContent = `${data.success_rate}%`;
+
+  // Donut
+  const canvas = document.getElementById('donut-canvas');
+  const ctx = canvas.getContext('2d');
+  const sb = data.status_breakdown;
+  const total = (sb.approved||0) + (sb.declined||0) + (sb.flagged||0);
+  if (total > 0) {
+    const slices = [
+      { val: sb.approved||0, color: '#00E5A0' },
+      { val: sb.declined||0, color: '#FF4B6E' },
+      { val: sb.flagged||0, color: '#FFB800' },
+    ];
+    let start = -Math.PI / 2;
+    ctx.clearRect(0, 0, 160, 160);
+    slices.forEach(s => {
+      const angle = (s.val / total) * Math.PI * 2;
+      ctx.beginPath(); ctx.moveTo(80, 80);
+      ctx.arc(80, 80, 70, start, start + angle);
+      ctx.fillStyle = s.color; ctx.fill();
+      start += angle;
+    });
+    ctx.beginPath(); ctx.arc(80, 80, 45, 0, Math.PI * 2);
+    ctx.fillStyle = '#13162A'; ctx.fill();
+    ctx.fillStyle = '#E8EAF5'; ctx.font = 'bold 16px Syne,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${data.success_rate}%`, 80, 80);
+  }
+
+  // Network breakdown
+  const nb = data.network_breakdown || {};
+  const ntotal = Object.values(nb).reduce((a,b) => a+b, 0) || 1;
+  const netColors = { Visa: '#1A1AFF', Mastercard: '#FF5F00', Amex: '#007B5E', Discover: '#FF6600' };
+  document.getElementById('network-breakdown').innerHTML = Object.entries(nb).map(([n, v]) => `
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span>${n}</span><span style="color:var(--muted)">${v} txns</span></div>
+      <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;background:${netColors[n]||'var(--gold)'};width:${Math.round(v/ntotal*100)}%;border-radius:2px;transition:width 1s ease;"></div>
+      </div>
+    </div>
+  `).join('');
+
+  // Risk
+  const rd = data.risk_distribution || { low: 10, medium: 5, high: 2 };
+  const rtotal = (rd.low||0) + (rd.medium||0) + (rd.high||0) || 1;
+  document.getElementById('risk-bars').innerHTML = [
+    ['Low Risk', rd.low||0, 'var(--green)'],
+    ['Medium Risk', rd.medium||0, 'var(--yellow)'],
+    ['High Risk', rd.high||0, 'var(--red)'],
+  ].map(([label, val, color]) => `
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;"><span>${label}</span><span style="color:${color}">${Math.round(val/rtotal*100)}%</span></div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;background:${color};width:${Math.round(val/rtotal*100)}%;border-radius:3px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBarChart() {
+  const hours = ['00','02','04','06','08','10','12','14','16','18','20','22'];
+  const vals = hours.map(() => Math.floor(Math.random() * 80) + 20);
+  const max = Math.max(...vals);
+  document.getElementById('bar-chart').innerHTML = vals.map((v, i) => `
+    <div class="bar-col">
+      <div class="bar" style="height:${(v/max*100)}%;animation:barGrow 1s ${i*0.06}s ease both;"></div>
+      <div class="bar-label">${hours[i]}h</div>
+    </div>
+  `).join('');
+}
+
+// ── LUHN ─────────────────────────────────────────────────────────────────────
+function luhnCheck(n) {
+  const cleaned = n.replace(/\D/g,'');
+  if (!cleaned) return false;
+  let total = 0;
+  [...cleaned].reverse().forEach((d, i) => {
+    let v = parseInt(d);
+    if (i % 2 === 1) { v *= 2; if (v > 9) v -= 9; }
+    total += v;
+  });
+  return total % 10 === 0;
+}
+
+function testLuhn() {
+  const val = document.getElementById('luhn-input').value.replace(/\D/g, '');
+  const result = document.getElementById('luhn-result');
+  const steps = document.getElementById('luhn-steps');
+  if (!val) {
+    result.innerHTML = `<div class="luhn-icon">💳</div><div class="luhn-status-text" style="color:var(--muted)">Enter a card number</div>`;
+    steps.innerHTML = 'Enter a card number to see step-by-step validation...';
+    return;
+  }
+  const valid = luhnCheck(val);
+  const net = cardNetworks[val[0]] || 'Unknown';
+  result.style.background = valid ? 'rgba(0,229,160,0.05)' : 'rgba(255,75,110,0.05)';
+  result.style.borderColor = valid ? 'rgba(0,229,160,0.3)' : 'rgba(255,75,110,0.3)';
+  result.innerHTML = `
+    <div class="luhn-icon">${valid ? '✅' : '❌'}</div>
+    <div class="luhn-status-text" style="color:${valid ? 'var(--green)' : 'var(--red)'}">${valid ? 'Valid Card Number' : 'Invalid Card Number'}</div>
+    <div class="luhn-details">Network: <strong style="color:var(--gold)">${net}</strong><br>Length: ${val.length} digits<br>Luhn: ${valid ? 'PASSED ✓' : 'FAILED ✗'}</div>
+  `;
+
+  // Step-by-step
+  const rev = [...val].reverse();
+  const stepRows = rev.map((d, i) => {
+    let v = parseInt(d);
+    let doubled = '';
+    if (i % 2 === 1) { v *= 2; if (v > 9) v -= 9; doubled = ` → ×2 = ${v}`; }
+    return `<div style="display:flex;gap:16px;padding:4px 0;border-bottom:1px solid var(--border);"><span style="width:30px;color:var(--muted)">${i+1}</span><span style="color:var(--gold)">${d}</span><span style="color:var(--muted)">${doubled}</span><span style="margin-left:auto;color:var(--text)">${v}</span></div>`;
+  }).join('');
+  const total = [...val].reverse().reduce((sum, d, i) => { let v = parseInt(d); if (i%2===1) { v*=2; if(v>9) v-=9; } return sum+v; }, 0);
+  steps.innerHTML = `<div style="margin-bottom:12px;font-size:10px;letter-spacing:1px;color:var(--muted)">POSITION — DIGIT — TRANSFORM — VALUE</div>${stepRows}<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);display:flex;justify-content:space-between"><span>Sum</span><span style="color:var(--gold)">${total}</span></div><div style="display:flex;justify-content:space-between;margin-top:4px"><span>Sum % 10</span><span style="color:${valid?'var(--green)':'var(--red)'}">${total%10} ${valid?'(= 0 ✓)':'(≠ 0 ✗)'}</span></div>`;
+}
+
+function setLuhn(val) {
+  const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+  document.getElementById('luhn-input').value = formatted;
+  testLuhn();
+}
+
+function fillTestCard(card, exp, cvv, amount) {
+  const formatted = card.match(/.{1,4}/g)?.join(' ') || card;
+  document.getElementById('f-card').value = formatted;
+  document.getElementById('f-expiry').value = exp;
+  document.getElementById('f-cvv').value = cvv;
+  document.getElementById('f-amount').value = amount;
+  document.getElementById('card-num-display').textContent = formatted;
+  document.getElementById('card-exp-display').textContent = exp;
+  const net = cardNetworks[card[0]] || '—';
+  document.getElementById('network-ind').textContent = net;
+  document.getElementById('card-network-badge').textContent = net;
+  updateFeePreview(parseFloat(amount));
+  scrollToSection('processor');
+  showToast('Test card loaded ✓', 'green');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'green') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; toast.style.transition = 'all 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  loadTransactions();
+  loadAnalytics();
+  renderBarChart();
+
+  // Animate stats
+  setTimeout(() => {
+    document.querySelectorAll('.stats-bar .stat-item').forEach(el => observer.observe(el));
+  }, 100);
+});
+</script>
+</body>
+</html>
